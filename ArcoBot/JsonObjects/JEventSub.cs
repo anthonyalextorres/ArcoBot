@@ -27,6 +27,10 @@ namespace ArcoBot.JsonObjects
         [JsonProperty("data")]
         public Data DataWrap { get; set; }
 
+        public JPubSub()
+        {
+            DataWrap = new Data();
+        }
         public override string ToString()
         {
             return JsonConvert.SerializeObject(this);

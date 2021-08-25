@@ -1,4 +1,5 @@
 ﻿using ArcoBot.PubSub.Models.Reponses.Redemption;
+using ArcoBot.PubSub.Models.Reponses.Subscription;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -55,7 +56,7 @@ namespace ArcoBot.PubSub.Models.Reponses
                     //MessageData = new Whisper(encodedJsonMessage);
                     break;
                 case "channel-subscribe-events-v1":
-                    //MessageData = new ChannelSubscription(encodedJsonMessage);
+                   MessageData = new Subscribe(encodedJsonMessage);
                     break;
                 case "channel-ext-v1":
                     //MessageData = new ChannelExtensionBroadcast(encodedJsonMessage);

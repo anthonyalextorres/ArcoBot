@@ -122,6 +122,7 @@
     <Compile Include="PubSub\Enums\ChannelPointType.cs" />
     <Compile Include="PubSub\Events\OnFollow.cs" />
     <Compile Include="PubSub\Events\OnPointRedemption.cs" />
+    <Compile Include="PubSub\Events\OnSubscribeArgs.cs" />
     <Compile Include="PubSub\Models\MessageData.cs" />
     <Compile Include="PubSub\Models\Reponses\Follow.cs" />
     <Compile Include="PubSub\Models\Reponses\Redemption\ChannelPointsChannel.cs" />
@@ -132,6 +133,9 @@
     <Compile Include="PubSub\Models\Reponses\Redemption\Redemption.cs" />
     <Compile Include="PubSub\Models\Reponses\Redemption\RedemptionImage.cs" />
     <Compile Include="PubSub\Models\Reponses\Redemption\Reward.cs" />
+    <Compile Include="PubSub\Models\Reponses\Subscription\Emote.cs" />
+    <Compile Include="PubSub\Models\Reponses\Subscription\Submessage.cs" />
+    <Compile Include="PubSub\Models\Reponses\Subscription\Subscribe.cs" />
     <Compile Include="PubSub\Models\Reponses\User.cs" />
     <Compile Include="PubSub\PubSub.cs" />
     <Compile Include="Token\ApplicationAccessToken.cs" />

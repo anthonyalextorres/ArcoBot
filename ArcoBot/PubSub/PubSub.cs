@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using ArcoBot.PubSub.Models.Reponses.Redemption;
 using ArcoBot.PubSub.Events;
 using ArcoBot.PubSub.Models.Reponses;
+using System.Threading;
+using ArcoBot.PubSub.Models.Reponses.Subscription;
 
 namespace ArcoBot
 {
@@ -25,11 +27,14 @@ namespace ArcoBot
         /// </summary>
         public event EventHandler<OnFollowArgs> OnFollow;
 
+        public event EventHandler<OnSubscribeArgs> OnSubscribe;
 
         private readonly WebSocketClient client;
         private readonly Random nonceRandom;
         private readonly string channelID;
         private readonly string oauth;
+        private readonly Timer pingTimer;
+        private DateTime lastPong;
         //ping/pong timer;
 
         public PubSubManager(string _authToken, string _channelID)
@@ -38,6 +43,7 @@ namespace ArcoBot
             nonceRandom = new Random();
             channelID = _channelID;
             oauth = _authToken.Replace("oauth:", "");
+            lastPong = new DateTime();
         }
         public void Initialize()
         {
@@ -68,6 +74,11 @@ namespace ArcoBot
                             var followData = (Follow)message.MessageData;
                             OnFollow?.Invoke(this, new OnFollowArgs { DisplayName = followData.DisplayName, FollowedChannelId = followData.FollowedChannelId, UserId = followData.UserId, UserName = followData.Username });
                             break;
+                        case "channel   -subscribe-events-v1":
+                            var subData = (Subscribe)message.MessageData;
+                            OnSubscribe?.Invoke(this, new OnSubscribeArgs(subData));
+
+                            break;
 
                     }
                     break;
@@ -85,7 +96,7 @@ namespace ArcoBot
             obj.DataWrap = new JPubSub.Data();
             obj.Type = "LISTEN";
             obj.Nonce = GenerateNonce();
-            obj.DataWrap.Topics = new string[2] { $"channel-points-channel-v1.{channelID}", $"following.{channelID}" };
+            obj.DataWrap.Topics = new string[3] { $"channel-points-channel-v1.{channelID}", $"following.{channelID}", $"channel-subscribe-events-v1.{channelID}" };
             obj.DataWrap.AuthToken = oauth;
           
             await client.Send(obj.ToString());

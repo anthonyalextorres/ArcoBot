@@ -529,7 +529,13 @@ namespace ArcoBot
         {
             pubSubManager.OnPointsRedeemed += OnPointsRedeemed;
             pubSubManager.OnFollow += OnFollow;
+            pubSubManager.OnSubscribe += OnSubscribe;
 
+        }
+
+        private void OnSubscribe(object sender, PubSub.Events.OnSubscribeArgs e)
+        {
+            ircClient.SendPublicMessage($"{e.DisplayName} has subscribed with a {e.SubPlanName} subscription!!!");
         }
 
         private void OnFollow(object sender, PubSub.Events.OnFollowArgs e)
