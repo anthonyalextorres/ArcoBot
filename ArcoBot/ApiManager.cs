@@ -530,6 +530,8 @@ namespace ArcoBot
             pubSubManager.OnPointsRedeemed += OnPointsRedeemed;
             pubSubManager.OnFollow += OnFollow;
             pubSubManager.OnSubscribe += OnSubscribe;
+            pubSubManager.OnCheer += OnCheer;
+            pubSubManager.OnBitsBadgeUnlock += OnBitsBadgeUnlock;
 
         }
 
@@ -548,6 +550,15 @@ namespace ArcoBot
         {
             ircClient.SendPublicMessage($"{e.Redemption.User.DisplayName} has redeemed {e.Redemption.Reward.Title} for {e.Redemption.Reward.Cost} points!!!");
         }
-        #endregion
-    }
+
+        private void OnCheer(object sender, PubSub.Events.OnCheerArgs e)
+        {
+            ircClient.SendPublicMessage($"TO DOOOOOO");
+        }
+        private void OnBitsBadgeUnlock(object sender, PubSub.Events.OnBitsBadgeUnlockArgs e)
+        {
+            ircClient.SendPublicMessage($"TO DOOOOOO");
+        }
+    #endregion
+}
 }
