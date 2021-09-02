@@ -26,159 +26,31 @@ namespace ArcoBot
     /// </summary>
     public partial class MainWindow : Window
     {
-        public IrcClient chatClient;
-        public IrcClient lurkClient;
-        public LurkBot lurkBot;
         public System.Timers.Timer chatTabTimer;
         public System.Timers.Timer lurkerTabTimer;
         public System.Timers.Timer viewerListTimer;
-        public static ApiManager apiManager;
-        public static PubSubManager pubSubManager;
-        TextBoxOutputter outputter;
+        public ApiManager apiManager;
+        RichTextBoxOutputter outputter;
 
         public MainWindow()
         {
             InitializeComponent();
 
-            apiManager = new ApiManager();
-            chatClient = new IrcClient(Global.Channel, apiManager.UserAccessToken.OAuth, Global.Channel, Global.address, Global.port);
-            apiManager.SetIRCClient(chatClient);
 
-           
+
 
             // Enter the listening loop.
-            //outputter = new TextBoxOutputter(chatTxtBox.);
-            //Console.SetOut(outputter);
+            //outputter = new RichTextBoxOutputter(chatTxtBox);
+            // Console.SetOut(outputter);
+            //Console.WriteLine("Bot has initiated.");
         }
-        
         private async void chatTabTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            //Check user role
-            //Maybe store a dictionary all viewers who have joined so far
-            if (chatClient != null)
-            {
-                string msg = chatClient.ReadMessage();
-                if (!string.IsNullOrEmpty(msg))
-                {
-                    Console.WriteLine(msg);
-                    if (msg.Contains("PRIVMSG"))
-                    {
-                        DateTime now = DateTime.Now;
-                        string submsg = msg.Substring(1);
-                        int nameIndex = submsg.IndexOf('!');
-                        string userName = submsg.Substring(0, nameIndex);
-                        int indexParse = submsg.IndexOf(':') + 1;
-                        submsg = submsg.Substring(indexParse);
-                        string[] cmdArgs = submsg.Split(' ');
-                        if (cmdArgs[0].StartsWith("!"))
-                        {
-                            switch (cmdArgs[0])
-                            {
-                                case "!testcmd":
-                                    {
 
-                                        apiManager.InitializeSubEvents();
-                                    }
-                                    break;
-                                case "!poll":
-                                    {
-                                        //Cleanup with sanity checks
-                                        if (cmdArgs.Length < 6)
-                                        {
-                                            chatClient.SendPublicMessage("Command formatted incorrectly. Example: !poll Will_Arco_Win? 2 Yes No 3");
-                                            break;
-                                        }
-                                        string title = cmdArgs[1].Replace('_',' ');
-                                        string[] choices = new string[Convert.ToInt32(cmdArgs[2])];
-                                        int index = 3;
-                                        for (int i =0; i< choices.Length;i++)
-                                        {
-                                            choices[i] = cmdArgs[3 + i];
-                                            index++;
-                                        }
-                                        var res = await apiManager.CreatePollAsync(title, choices, false, 0, Convert.ToInt32(cmdArgs[index]));
-                                        chatClient.SendPublicMessage(res);
-                                    }
-                                    break;
-                                case "!mods":
-                                    {
-                                        var res = await apiManager.GetModeratorsAsync(); 
-                                        chatClient.SendPublicMessage(res);
-                                    }
-                                    break;
-                                case "!followage":
-                                    {
-                                        string res = "";
-                                        if (cmdArgs.Length == 2)
-                                            res = await apiManager.GetFollowAgeAsync(cmdArgs[1]);
-                                        else
-                                            res = await apiManager.GetFollowAgeAsync(userName);
-                                        chatClient.SendPublicMessage(res);
-                                    }
-                                    break;
-                                case "!subs":
-                                    {
-                                        var result = await apiManager.GetSubscriberCountAsync();
-                                        chatClient.SendPublicMessage($"{result} members in the Fiesta Fam!");
-                                    }
-                                    break;
-                                case "!randomsub":
-                                    {
-                                        var result = await apiManager.GetRandomSubAsync();
-                                        chatClient.SendPublicMessage(result);
-                                    }
-                                    break;
+            string msg = await apiManager?.ReadMessage();
 
-                                case "!randomclip":
-                                    {
-                                        var result = await apiManager.GetRandomClipAsync();
-                                        chatClient.SendPublicMessage(result);
-                                    }
-                                    break;
-                                case "!clip":
-                                    {
-                                        var result = await apiManager.CreateClipAsync();
-                                        chatClient.SendPublicMessage(result);
-                                    }
-                                    break;
-                                case "!randomcliphunt":
-                                    {
-                                        var result = await apiManager.GetClipThumbnail();
-                                        chatClient.SendPublicMessage(result);
-                                    }
-                                    break;
-                                case "!sublist":
-                                    {
-                                        var result = await apiManager.GetSubscriberListAsync();
-                                        foreach (var i in result)
-                                            Console.WriteLine(i);
-                                    }
-                                    break;
-                                default: chatClient.SendPublicMessage("I don't think that command exists! arcotvSad arcotvSad arcotvSad "); break;
-                            }
-                        }
-                        Dispatcher.Invoke(() => chatTxtBox.AppendText($"[{now.Hour}:{now.Minute}:{now.Second}] {userName}: {submsg}\r\n"));
-                    }
-                }
-            }
-        }
-
-        private void StartChatBot()
-        {
-
-            chatTabTimer = new System.Timers.Timer(50);
-            chatTabTimer.Elapsed += chatTabTimer_Elapsed;
-
-            viewerListTimer = new System.Timers.Timer(60000);
-            viewerListTimer.Elapsed += ViewerListTimer_Elapsed;
-
-
-            chatClient.Start(false);
-            chatTabTimer.Start();
-            viewerListTimer.Start();
-
-            ViewerListTimer_Elapsed(null, null);
-
+            if (msg != default)
+                Dispatcher.Invoke(() => chatRichTxtBox.AppendText($"{msg}\r\n"));
         }
 
         private async void ViewerListTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
@@ -187,13 +59,13 @@ namespace ArcoBot
             //if count by group is 0, ignore and move to the next
             //if count by group is >= 1, add type to list, then list under.
             var viewerList = await apiManager.GetCurrentViewers();
-            await viewertListbox.Dispatcher.BeginInvoke(new Action(() =>
+            await viewerListbox.Dispatcher.BeginInvoke(new Action(() =>
             {
-                viewertListbox.IsEnabled = false;
-                viewertListbox.Items.Clear();
+                viewerListbox.IsEnabled = false;
+                viewerListbox.Items.Clear();
                 foreach (var viewer in viewerList)
-                    viewertListbox.Items.Add(viewer);
-                viewertListbox.IsEnabled = true;
+                    viewerListbox.Items.Add(viewer);
+                viewerListbox.IsEnabled = true;
             }));
         }
 
@@ -202,31 +74,104 @@ namespace ArcoBot
             base.OnClosed(e);
             Environment.Exit(0);
         }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void chatStartBtn_Click(object sender, RoutedEventArgs e)
         {
-            StartChatBot();
-        }
 
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void chatTxtBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            chatTxtBox.ScrollToEnd();
+            //chatTxtBox.ScrollToEnd();
         }
-
-        private void ircLogTxtBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            //ircLogTxtBox.ScrollToEnd();
-        }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void chatStartBtn_MouseEnter(object sender, MouseEventArgs e)
-        {   
-            chatStartBtn.Content = FindResource("ConnectTwitchHover");
-           
+        {
+            //chatStartBtn.Content = FindResource("ConnectTwitchHover");
+
         }
 
         private void chatStartBtn_MouseLeave(object sender, MouseEventArgs e)
         {
-            chatStartBtn.Content = FindResource("ConnectTwitchNormal");
+            //chatStartBtn.Content = FindResource("ConnectTwitchNormal");
 
+        }
+
+        private void listBox1_MouseDown(object sender, MouseEventArgs e)
+        {
+
+        }
+
+        private void viewerListBoxVisit_Click(object sender, RoutedEventArgs e)
+        {
+            if (viewerListbox.SelectedIndex == -1) return;//Open via chromium?
+            System.Diagnostics.Process.Start($"https://twitch.tv/{viewerListbox.SelectedValue}");
+
+        }
+        private async void viewerListBoxBan_Click(object sender, RoutedEventArgs e)
+        {
+            await apiManager.Ban(Convert.ToString(viewerListbox.SelectedValue));
+        }
+
+        private void connectBtn_Click(object sender, RoutedEventArgs e)
+        {
+            apiManager = new ApiManager();
+            if (!apiManager.Connected)
+            {
+                MessageBox.Show("Error connecting");
+                return;
+            }
+            chatTabTimer = new System.Timers.Timer(50);
+            chatTabTimer.Elapsed += chatTabTimer_Elapsed;
+
+            viewerListTimer = new System.Timers.Timer(60000);
+            viewerListTimer.Elapsed += ViewerListTimer_Elapsed;
+
+            chatTabTimer.Start();
+            viewerListTimer.Start();
+
+            ViewerListTimer_Elapsed(null, null);
+
+            foreach (TabItem tabItem in tabControl.Items)
+            {
+                var tabString = tabItem.Header.ToString();
+                if (tabString != "Initialize")
+                {
+                    tabItem.Visibility = Visibility.Visible;
+                    continue;
+                }
+            }
+            tabControl.Items.Remove(tabControl.SelectedItem);
+            tabControl.SelectedIndex = tabControl.SelectedIndex + 1;
+        }
+
+        private void sendChatMsgBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(chatMsgTxtBox.Text))
+            {
+                apiManager.SendPublicMessage(chatMsgTxtBox.Text);
+                chatMsgTxtBox.Clear();
+            }
+        }
+
+        private void chatMsgTxctBox_onKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                sendChatMsgBtn_Click(null, null);
+            }
         }
     }
 }

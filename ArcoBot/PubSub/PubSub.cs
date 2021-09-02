@@ -12,6 +12,7 @@ using ArcoBot.PubSub.Events;
 using ArcoBot.PubSub.Models.Reponses;
 using System.Threading;
 using ArcoBot.PubSub.Models.Reponses.Subscription;
+using ArcoBot.PubSub.Models.Reponses.Cheer;
 
 namespace ArcoBot
 {
@@ -90,7 +91,7 @@ namespace ArcoBot
                             break;
                         case "channel-subscribe-events-v1"://TODO fire separately for gifted subs.
                             var subData = (Subscribe)message.MessageData;
-                            OnSubscribe?.Invoke(this, new OnSubscribeArgs(subData))
+                            OnSubscribe?.Invoke(this, new OnSubscribeArgs(subData));
                             break;
 
                         case "channel-bits-events-v1":
@@ -123,13 +124,13 @@ namespace ArcoBot
             obj.DataWrap = new JPubSub.Data();
             obj.Type = "LISTEN";
             obj.Nonce = GenerateNonce();
-            obj.DataWrap.Topics = new string[5] 
+            obj.DataWrap.Topics = new string[] 
             { 
                 $"channel-points-channel-v1.{channelID}",
                 $"following.{channelID}", 
                 $"channel-subscribe-events-v1.{channelID}",
                 $"channel-bits-events-v1.{channelID}," +
-                $"channel-bits-badge-unlocks.{channelID}
+                $"channel-bits-badge-unlocks.{channelID}"
             };
             obj.DataWrap.AuthToken = oauth;
           

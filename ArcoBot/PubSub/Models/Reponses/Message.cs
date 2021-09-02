@@ -39,10 +39,10 @@ namespace ArcoBot.PubSub.Models.Reponses
                     ///MessageData = new AutomodQueue(encodedJsonMessage);
                     break;
                 case "chat_moderator_actions":
-                    ///MessageData = new ChatModeratorActions(encodedJsonMessage);
+                    //MessageData = new ChatModeratorActions(encodedJsonMessage);
                     break;
                 case "channel-bits-events-v1":
-                    //MessageData = new ChannelBitsEvents(encodedJsonMessage);
+                    MessageData = new Cheer.Cheer(encodedJsonMessage);
                     break;
                 case "channel-bits-events-v2":
                     //encodedJsonMessage = encodedJsonMessage.Replace("\\", "");

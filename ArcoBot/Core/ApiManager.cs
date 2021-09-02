@@ -16,14 +16,17 @@ using System.Threading.Tasks;
 
 namespace ArcoBot
 {
+    //Ideas
+    //Top sub streak?
+    //Timer message, join followers (count)
     public class ApiManager
     {
-        public IrcClient ircClient;
+        private IrcManager ircManager;
+        private PubSubManager pubSubManager;
+
         private HttpClient appAccessClient;
         private HttpClient userAccessClient;
 
-        private PubSubManager pubSubManager;
-  
         private UserAccessToken userAccessToken;
         private ApplicationAccessToken appAccessToken;
 
@@ -45,6 +48,7 @@ namespace ArcoBot
 
         public UserAccessToken UserAccessToken { get => userAccessToken; }
         public ApplicationAccessToken AppAccessToken { get => appAccessToken; }
+        public bool Connected { get { if (ircManager != null) return ircManager.Connected; else return false; } }
 
         public ApiManager()
         {
@@ -66,7 +70,10 @@ namespace ArcoBot
             appAccessToken = new ApplicationAccessToken(appAccessClient, clientID, clientSecret);
             appAccessToken.Initialize();
 
-            SetBroadcasterID();
+            SetBroadcasterInfo();
+
+            ircManager = new IrcManager(broadcasterName, userAccessToken.OAuth, broadcasterName, "irc.chat.twitch.tv", 6667);
+            ircManager.Start(false);
 
             pubSubManager = new PubSubManager(UserAccessToken.OAuth, broadcasterID);
             pubSubManager.Initialize();
@@ -78,34 +85,7 @@ namespace ArcoBot
             InitializeSubEvents();
         }
 
-        public string GetBroadcasterID()
-        {
-            return broadcasterID;
-        }
-        public void SetIRCClient(IrcClient client)
-        {
-            if (client != null) ircClient = client;
-            //throw some exception
-        }
-        private string UserAccessTokenUri()
-        {
-            return $"{ authorizeUri }?client_id={ clientID}" +
-             "&redirect_uri=http://localhost:8080&response_type=code" +
-                 $"&scope=user:edit+user:edit:follows+user:read:blocked_users+moderation:read+clips:edit+channel:read:subscriptions+channel:read:hype_train+" +
-                 $"bits:read+chat:read+channel:read:redemptions+chat:edit&force_verify=true";
-        }
-        private string AppAccessTokenUri()
-        {
-            return $"{tokenUri}?client_id={clientID}&client_secret={clientSecret}" +
-                $"&grant_type=client_credentials&scope=user:edit+user:edit:follows+user:read:blocked_users+clips:edit+channel:read:subscriptions+channel:read:hype_train+" +
-                $"bits:read";
-        }
-        private string UserAccessTokenRequest(string code)
-        {
-            return $"{tokenUri}?client_id={clientID}&client_secret={clientSecret}" +
-                $"&code={code}&grant_type=authorization_code&redirect_uri=http://localhost:8080";
-        }
-        public void SetBroadcasterID()
+        private void SetBroadcasterInfo()
         {
             JValidation validationObj;
             HttpResponseMessage respMsg;
@@ -117,14 +97,17 @@ namespace ArcoBot
             jsonContent = JsonConvert.DeserializeObject<object>(rawContent);
             validationObj = new JValidation(jsonContent.ToString());
             if (validationObj != null)
+            {
                 broadcasterID = validationObj.UserID;
+                broadcasterName = validationObj.Login;
+            }
 
         }
-        public async Task<string> GetFollowAgeAsync(string username)
+        public async Task GetFollowAgeAsync(string username)
         {
             //if user does not exist?
-            //If the user is the broadcaster?
-           
+            //If the user is the broadcaster? x
+
             if (appAccessClient != null)
             {
                 DateTime followDate = default;
@@ -154,7 +137,11 @@ namespace ArcoBot
 
                 jsonContent1 = JsonConvert.DeserializeObject<object>(rawContent1);
                 dynamic innerJson = jsonContent1["data"].First;
-                if (innerJson == null) return "That user doesn't exist!";
+                if (innerJson == null)
+                {
+                    await SendPublicMessageAsync("That user doesn't exist!");
+                    return;
+                }
                 JUser callUser = new JUser(innerJson);
                 callID = callUser.ID;
                 displayName = callUser.DisplayName;
@@ -188,8 +175,11 @@ namespace ArcoBot
                 }
                 while (!string.IsNullOrEmpty(cursor));
 
-                if (followDate == default) return $"{displayName} isn't even a part of the Fiesta!";
-
+                if (followDate == default)
+                {
+                    await ircManager.SendPublicMessageAsync($"{displayName} isn't even a part of the Fiesta!");
+                    return;
+                }
                 now = DateTime.UtcNow;
                 years = new DateTime(DateTime.UtcNow.Subtract(followDate).Ticks).Year - 1;
                 currentFollowDate = followDate.AddYears(years);
@@ -219,13 +209,18 @@ namespace ArcoBot
                 string retnDayBase = days > 1 ? "days" : "day";
                 string retnDay = years > 0 ? $"{days} {retnDayBase}" : string.Empty;
 
-                return $"{displayName} has been a part of the Fiesta for {retnYear} {retnMonth} {retnDay}!";
+                await SendPublicMessageAsync($"{displayName} has been a part of the Fiesta for {retnYear} {retnMonth} {retnDay}!");
+                return;
             }
-            return $"Error Found: ApiManager.GetFollowAgeAsync()";
+            await SendPublicMessageAsync("Something went wrong with getting the user's follow age!");//$"Error Found: ApiManager.GetFollowAgeAsync()";
         }
-        public async Task<string> GetSubscriberCountAsync()
+        public async Task GetSubscriberCountAsync()
         {
-            if (userAccessClient == null) return string.Empty;
+            if (userAccessClient == null)
+            {
+                await SendPublicMessageAsync("Something went wrong....");
+                return;
+            }
 
             string cursor = string.Empty;
             int count = -1;
@@ -247,14 +242,13 @@ namespace ArcoBot
                 address = new Uri($"{subscriptionUri}?broadcaster_id={broadcasterID}&first=100&after={cursor}");
             }
             while (!string.IsNullOrEmpty(cursor));
-            return count.ToString();
+            await SendPublicMessageAsync($"{count} partygoers in the Fiesta Fam!!!!");
         }
         public async Task<List<string>> GetSubscriberListAsync()
         {
             if (userAccessClient == null) return null;
 
-            string cursor = string.Empty;
-            int count = -1;
+            string cursor;
             Uri address = new Uri($"{ subscriptionUri }?broadcaster_id={broadcasterID}&first=100");
             List<string> subscriberList = new List<string>();
             do
@@ -268,7 +262,7 @@ namespace ArcoBot
                 foreach (var subscriber in responseObject["data"])
                 {
                     JSubscription sub = new JSubscription(subscriber);
-                    if (sub.UserName != Global.Channel)
+                    if (sub.UserName != broadcasterName)
                         subscriberList.Add($"{sub.UserName}");
                 }
                 address = new Uri($"{subscriptionUri}?broadcaster_id={broadcasterID}&first=100&after={cursor}");
@@ -276,9 +270,13 @@ namespace ArcoBot
             while (!string.IsNullOrEmpty(cursor));
             return subscriberList;
         }
-        public async Task<string> GetRandomSubAsync()
+        public async Task GetRandomSubAsync()
         {
-            if (userAccessClient == null) return string.Empty;
+            if (userAccessClient == null)
+            {
+                await SendPublicMessageAsync("Something went wrong....");
+                return;
+            }
 
             string cursor = string.Empty;
             List<JSubscription> subList = new List<JSubscription>();
@@ -303,14 +301,20 @@ namespace ArcoBot
             Random ranGen = new Random();
             randomSub = subList[ranGen.Next(0, subList.Count - 1)];
             if (randomSub != null)
-                return $"Random appreciation to @{randomSub.UserName} for your subscription to the channel!";
-            return "Looks like something went wrong..... scary....";
+            {
+                await SendPublicMessageAsync($"Random appreciation to @{randomSub.UserName} for your subscription to the channel!");
+                return;
+            }
+            await SendPublicMessageAsync("Looks like something went wrong..... scary....");
 
         }
-        public async Task<string> GetRandomClipAsync()
+        public async Task GetRandomClipAsync()
         {
-            if (userAccessClient == null) return string.Empty;
-
+            if (userAccessClient == null)
+            {
+                await SendPublicMessageAsync("Something went wrong....");
+                return;
+            }
             string cursor = string.Empty;
             List<JClip> clipList = new List<JClip>();
             Uri address = new Uri($"{ clipUri }?broadcaster_id={broadcasterID}&first=100");
@@ -335,28 +339,43 @@ namespace ArcoBot
             randomClip = clipList[ranGen.Next(0, clipList.Count - 1)];
             Console.WriteLine(randomClip.ToString());
             if (randomClip != null)
-                return $"Random clip provided! {randomClip.URL}";
-            return "Looks like something went wrong..... scary....";
+            {
+                await SendPublicMessageAsync($"Random clip provided! {randomClip.URL}");
+                return;
+            }
+            await SendPublicMessageAsync("Looks like something went wrong..... scary....");
         }
-        public async Task<string> CreateClipAsync()
+        public async Task CreateClipAsync()
         {
-            if (userAccessClient == null) return "Something went wrong....";
-
+            if (userAccessClient == null)
+            {
+                await SendPublicMessageAsync("Something went wrong....");
+                return;
+            }
             HttpRequestMessage msgReq = new HttpRequestMessage(HttpMethod.Post, $"{clipUri}?broadcaster_id={broadcasterID}");
             HttpResponseMessage msgResp = await userAccessClient.SendAsync(msgReq);
             string content = await msgResp.Content.ReadAsStringAsync();
-            
+
             dynamic jsonContent = JsonConvert.DeserializeObject<object>(content);
             if (jsonContent != null)
             {
                 JClipCreation jClip = new JClipCreation(jsonContent["data"].First());
-                return $"{ jClip.EditURL.Replace("/edit", "")}";
+                {
+                    await SendPublicMessageAsync("Clip created!");
+                    await SendPublicMessageAsync($"{ jClip.EditURL.Replace("/edit", "")}");
+                    return;
+                }
             }
-            return "Uh oh.... We couldn't create the clip!";
+            await SendPublicMessageAsync("Uh oh.... We couldn't create the clip!");
         }
-        public async Task<string> GetClipThumbnail()
+        public async Task GetClipThumbnail()
         {
-            if (userAccessClient == null) return string.Empty;
+            if (userAccessClient == null)
+            {
+                await SendPublicMessageAsync("Something went wrong with getting the clip thumbnail!");
+                return;
+            }
+
 
             string cursor = string.Empty;
             List<JClip> clipList = new List<JClip>();
@@ -381,8 +400,12 @@ namespace ArcoBot
             Random ranGen = new Random();
             randomClip = clipList[ranGen.Next(0, clipList.Count - 1)];
             if (randomClip != null)
-                return $"Go find that clip! {randomClip.ThumbnailURL}";
-            return "Looks like something went wrong..... scary....";
+            {
+                await SendPublicMessageAsync($"Go find that clip! {randomClip.ThumbnailURL}");
+                return;
+            }
+            await SendPublicMessageAsync("Looks like something went wrong..... scary....");
+            return;
         }
         public async Task<List<string>> GetCurrentViewers()
         {
@@ -444,9 +467,9 @@ namespace ArcoBot
             return viewerList;
         }
 
-        public async Task<string> GetModeratorsAsync()
+        public async Task GetModeratorsAsync()
         {
-            if (userAccessClient == null) return "Something went wrong...";
+            if (userAccessClient == null) { await SendPublicMessageAsync("Something went wrong...."); return; }
 
             string retn = "Much love to all the wonderful Moderators of the Fiesta Fam: ";
             HttpResponseMessage response = await userAccessClient.GetAsync($"https://api.twitch.tv/helix/moderation/moderators?broadcaster_id={ broadcasterID }");//new HttpRequestMessage(HttpMethod.Get, "https://api.twitch.tv/helix/moderation/moderators");
@@ -466,20 +489,20 @@ namespace ArcoBot
                 }
             }
 
-            return retn;
+            await SendPublicMessageAsync(retn);
         }
-        public async Task<string> CreatePollAsync(string title, string[] choices, bool pointsEnabled, int pointsCost, int duration)
+        public async Task CreatePollAsync(string title, string[] choices, bool pointsEnabled, int pointsCost, int duration)
         {
             //Needs work. Cleanup code? gui feature?
-            if (userAccessClient == null) return "Something went wrong... arcotvSad arcotvSad arcotvSad";
+            if (userAccessClient == null) { await SendPublicMessageAsync("Something went wrong... arcotvSad arcotvSad arcotvSad"); return; }
             var request = new HttpRequestMessage(HttpMethod.Post, "https://api.twitch.tv/helix/polls");
-        
+
             JPollCreate poll = new JPollCreate();
             poll.BroadcasterID = broadcasterID;
             poll.Title = title;
             poll.Choices = new JPollChoice[choices.Length];
             for (int i = 0; i < choices.Length; i++)
-                poll.Choices[i] = new JPollChoice() { Title = choices[i]};
+                poll.Choices[i] = new JPollChoice() { Title = choices[i] };
             poll.ChannelPointsVotingEnabled = pointsEnabled;
             poll.ChannelPointsPerVote = pointsCost;
             poll.Duration = duration * 60;
@@ -488,29 +511,33 @@ namespace ArcoBot
             var response = await userAccessClient.SendAsync(request);
             var responseBody = await response.Content.ReadAsStringAsync();
 
-            return $"Poll started! {poll.Title}";
+            await SendPublicMessageAsync($"Poll started! {poll.Title}");
 
         }
         public async Task<string> CreatePredictionAsync()
         {
             return string.Empty;
         }
+
+        /// <summary>
+        /// Gets the current uptime of the stream then sends a message to chat.
+        /// </summary>
+        private async Task GetUptimeAsync()
+        {
+
+        }
         public async Task StartCommercialAsync()
         {
             //POST https://api.twitch.tv/helix/channels/commercial
 
             if (userAccessClient == null) return;
-            
+
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "https://api.twitch.tv/helix/channels/commercial");
             JCommercial commercial = new JCommercial(broadcasterID, "60");
             request.Content = new StringContent(JsonConvert.SerializeObject(commercial));
             request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
             var response = await userAccessClient.SendAsync(request);
             var responseBody = await response.Content.ReadAsStringAsync();
-
-            Console.WriteLine("Yes");
-
-
         }
 
         public async Task<string> SetTitleAsync(string title) { return string.Empty; }
@@ -525,6 +552,12 @@ namespace ArcoBot
             return string.Empty;
         }
 
+        public async Task Ban(string username)
+        {
+            await ircManager.SendPublicMessageAsync($".ban { username}");
+            await ircManager.SendPublicMessageAsync($"{username} has been banned for a party foul!");
+        }
+
         public void InitializeSubEvents()
         {
             pubSubManager.OnPointsRedeemed += OnPointsRedeemed;
@@ -537,28 +570,125 @@ namespace ArcoBot
 
         private void OnSubscribe(object sender, PubSub.Events.OnSubscribeArgs e)
         {
-            ircClient.SendPublicMessage($"{e.DisplayName} has subscribed with a {e.SubPlanName} subscription!!!");
+            ircManager.SendPublicMessage($"{e.DisplayName} has subscribed with a {e.SubPlanName} subscription!!!");
         }
 
         private void OnFollow(object sender, PubSub.Events.OnFollowArgs e)
         {
-            ircClient.SendPublicMessage($"{e.DisplayName} has joined the Fiesta Fam!!!");
+            ircManager.SendPublicMessage($"{e.DisplayName} has joined the Fiesta Fam!!!");
         }
 
         #region PubSub Events
         private void OnPointsRedeemed(object sender, PubSub.Events.OnChannelPointsRedeemedArgs e)
         {
-            ircClient.SendPublicMessage($"{e.Redemption.User.DisplayName} has redeemed {e.Redemption.Reward.Title} for {e.Redemption.Reward.Cost} points!!!");
+            ircManager.SendPublicMessage($"{e.Redemption.User.DisplayName} has redeemed {e.Redemption.Reward.Title} for {e.Redemption.Reward.Cost} points!!!");
         }
 
         private void OnCheer(object sender, PubSub.Events.OnCheerArgs e)
         {
-            ircClient.SendPublicMessage($"TO DOOOOOO");
+            ircManager.SendPublicMessage($"TO DOOOOOO");
         }
-        private void OnBitsBadgeUnlock(object sender, PubSub.Events.OnBitsBadgeUnlockArgs e)
+        private void OnBitsBadgeUnlock(object sender, PubSub.Events.OnBitsBadgeUnlocksArgs e)
         {
-            ircClient.SendPublicMessage($"TO DOOOOOO");
+            ircManager.SendPublicMessage($"TO DOOOOOO");
         }
+        #endregion
+
+        #region IRC
+
+        public void SendPublicMessage(string message)
+        {
+            ircManager.SendPublicMessage(message);
+        }
+        private async Task SendPublicMessageAsync(string message)
+        {
+            await ircManager.SendPublicMessageAsync(message);
+        }
+
+        public async Task<string> ReadMessage()
+        {
+            string msg = ircManager.ReadMessage();
+            await HandleCommand(msg);
+
+            return msg;
+        }
+        private async Task HandleCommand(string msg)
+        {
+            if (ircManager != null)
+            {
+                if (!string.IsNullOrEmpty(msg))
+
+                    if (msg.Contains("PRIVMSG"))
+                    {
+                        string submsg = msg.Substring(1);
+                        int nameIndex = submsg.IndexOf('!');
+                        string userName = submsg.Substring(0, nameIndex);
+                        int indexParse = submsg.IndexOf(':') + 1;
+                        submsg = submsg.Substring(indexParse);
+                        string[] cmdArgs = submsg.Split(' ');
+                        if (cmdArgs[0].StartsWith("!"))
+                        {
+                            switch (cmdArgs[0])
+                            {
+                                case "!poll":
+                                    {
+                                        //Cleanup with sanity checks
+                                        if (cmdArgs.Length < 6)
+                                        {
+                                            await ircManager.SendPublicMessageAsync("Command formatted incorrectly. Example: !poll Will_Arco_Win? 2 Yes No 3");
+                                            break;
+                                        }
+                                        string title = cmdArgs[1].Replace('_', ' ');
+                                        string[] choices = new string[Convert.ToInt32(cmdArgs[2])];
+                                        int index = 3;
+                                        for (int i = 0; i < choices.Length; i++)
+                                        {
+                                            choices[i] = cmdArgs[3 + i];
+                                            index++;
+                                        }
+                                        await CreatePollAsync(title, choices, false, 0, Convert.ToInt32(cmdArgs[index]));
+
+                                    }
+                                    break;
+                                case "!mods":
+                                    await GetModeratorsAsync();
+                                    break;
+
+                                case "!followage":
+                                    if (cmdArgs.Length == 2)
+                                        await GetFollowAgeAsync(cmdArgs[1]);
+                                    else
+                                        await GetFollowAgeAsync(userName);
+                                    break;
+
+                                case "!subs":
+                                    await GetSubscriberCountAsync();
+                                    break;
+
+                                case "!randomsub":
+                                    await GetRandomSubAsync();
+                                    break;
+
+                                case "!randomclip":
+                                    await GetRandomClipAsync();
+                                    break;
+
+                                case "!clip":
+                                    await CreateClipAsync();
+                                    break;
+
+                                case "!randomcliphunt":
+                                    await GetClipThumbnail();
+                                    break;
+
+                                default: 
+                                    SendPublicMessage("I don't think that command exists! arcotvSad arcotvSad arcotvSad "); 
+                                    break;
+                            }
+                        }
+                    }
+            }
+        }
+    }
     #endregion
-}
 }

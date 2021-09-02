@@ -5,11 +5,11 @@ using System.Windows.Controls;
 
 namespace ArcoBot.Utility
 {
-    public class TextBoxOutputter : TextWriter
+    public class RichTextBoxOutputter : TextWriter
     {
-        TextBox textBox = null;
+        RichTextBox textBox = null;
 
-        public TextBoxOutputter(TextBox output)
+        public RichTextBoxOutputter(RichTextBox output)
         {
             textBox = output;
         }

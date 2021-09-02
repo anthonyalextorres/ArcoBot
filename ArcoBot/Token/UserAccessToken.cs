@@ -167,7 +167,7 @@ namespace ArcoBot.Token
             return $"{ baseAuthorizeUri }?client_id={ clientID }" +
                    "&redirect_uri=http://localhost:8080&response_type=code" +
                     $"&scope=user:edit+user:edit:follows+user:read:blocked_users+clips:edit+channel:read:subscriptions+channel:read:hype_train+" +
-                    $"bits:read+chat:read+moderation:read+chat:edit+channel:manage:polls+channel:manage:predictions+channel:read:polls+" +
+                    $"bits:read+chat:read+moderation:read+chat:edit+channel:moderate+channel:manage:polls+channel:manage:predictions+channel:read:polls+" +
                     $"channel:read:predictions+channel:read:redemptions+channel:edit:commercial&force_verify=true";
         }
         private string UserAccessTokenRequest(string code)

@@ -100,7 +100,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="ApiManager.cs" />
+    <Compile Include="Core\ApiManager.cs" />
     <Compile Include="Enums\ErrorType.cs" />
     <Compile Include="Enums\TokenType.cs" />
     <Compile Include="Interfaces\IToken.cs" />
@@ -118,12 +118,16 @@
     <Compile Include="JsonObjects\JUserAccessToken.cs" />
     <Compile Include="Network\Events\OnMessageEventArgs.cs" />
     <Compile Include="Network\WebSocketClient.cs" />
-    <Compile Include="Network\TcpClient.cs" />
     <Compile Include="PubSub\Enums\ChannelPointType.cs" />
-    <Compile Include="PubSub\Events\OnFollow.cs" />
-    <Compile Include="PubSub\Events\OnPointRedemption.cs" />
+    <Compile Include="PubSub\Events\OnBitsBadgeUnlockArgs.cs" />
+    <Compile Include="PubSub\Events\OnCheerArgs.cs" />
+    <Compile Include="PubSub\Events\OnFollowArgs.cs" />
+    <Compile Include="PubSub\Events\OnPointRedemptionArgs.cs" />
     <Compile Include="PubSub\Events\OnSubscribeArgs.cs" />
     <Compile Include="PubSub\Models\MessageData.cs" />
+    <Compile Include="PubSub\Models\Reponses\Cheer\BadgeEntitlement.cs" />
+    <Compile Include="PubSub\Models\Reponses\Cheer\BadgeUnlocks.cs" />
+    <Compile Include="PubSub\Models\Reponses\Cheer\Cheer.cs" />
     <Compile Include="PubSub\Models\Reponses\Follow.cs" />
     <Compile Include="PubSub\Models\Reponses\Redemption\ChannelPointsChannel.cs" />
     <Compile Include="PubSub\Models\Reponses\Message.cs" />
@@ -150,7 +154,7 @@
       <DependentUpon>Login.xaml</DependentUpon>
     </Compile>
     <Compile Include="Lurker.cs" />
-    <Compile Include="TimedMessages.cs" />
+    <Compile Include="Utility\TimedMessages.cs" />
     <Compile Include="Utility\Output.cs" />
     <Page Include="GUI\Login.xaml">
       <SubType>Designer</SubType>
@@ -164,8 +168,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Global.cs" />
-    <Compile Include="IrcClient.cs" />
+    <Compile Include="Core\IrcManager.cs" />
     <Compile Include="JsonObjects\JLiveStream.cs" />
     <Compile Include="GUI\MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
@@ -173,7 +176,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="PingManager.cs" />
+    <Compile Include="Core\PingManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -201,7 +204,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Core\" />
     <Folder Include="Exceptions\" />
     <Folder Include="Scripting\" />
   </ItemGroup>

@@ -10,7 +10,7 @@ namespace ArcoBot.JsonObjects
     class JClip : JObject<JClip>
     {
         [JsonProperty("id")]
-        public string ID;
+        public string ID { get; internal set; }
 
         [JsonProperty("url")]
         public string URL;

@@ -10,39 +10,26 @@
         <Image x:Key="ConnectTwitchNormal" Source="ConnectTwitchNormal.png" Height="56" Width="224" Stretch="UniformToFill" Margin="378,315,0,0" />
         <Image x:Key="ConnectTwitchHover" Source="ConnectTwitchHover.png" Height="56" Width="224" Stretch="UniformToFill" />
     </Window.Resources>
-
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition/>
-        </Grid.ColumnDefinitions>
-        <Button x:Name="chatStartBtn" Content=""  HorizontalAlignment="Left" VerticalAlignment="Top" Width="222" Margin="10,10,0,0" Click="chatStartBtn_Click" Height="52" BorderThickness="0" MouseEnter="chatStartBtn_MouseEnter" MouseLeave="chatStartBtn_MouseLeave">
-            <Button.Background>
-                <ImageBrush Stretch="Uniform"/>
-            </Button.Background>
-            <Button.Template>
-                <ControlTemplate>
-                    <Image x:Name="Image" Stretch="None" Source="/ArcoBot;component/ConnectTwitchNormal.png"/>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Image" Property="Source" Value="ConnectTwitchHover.png" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-        <ListBox x:Name="viewertListbox" HorizontalAlignment="Left" Height="450" Margin="739,0,0,0" VerticalAlignment="Top" Width="200" Background="Black" BorderBrush="#FF7D00FF" Foreground="White"/>
-        <RichTextBox x:Name="chatTxtBox" HorizontalAlignment="Left" Height="450" VerticalAlignment="Top" Width="483" Margin="258,0,0,0" BorderBrush="#FF7D00FF" Foreground="White" FontFamily="Rockwell Condensed">
-            <RichTextBox.Background>
-                <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
-                    <GradientStop Color="Black" Offset="0"/>
-                    <GradientStop Color="Black" Offset="1"/>
-                </LinearGradientBrush>
-            </RichTextBox.Background>
-            <FlowDocument>
-                <Paragraph>
-                    <Run Text=""/>
-                </Paragraph>
-            </FlowDocument>
-        </RichTextBox>
-    </Grid>
+    <TabControl x:Name="tabControl" TabStripPlacement="Left">
+        <TabItem x:Name="initializeTab" Header="Initialize">
+            <Grid Background="#FFE5E5E5">
+                <Button x:Name="connectBtn" Content="Connect" HorizontalAlignment="Left" Margin="360,214,0,0" VerticalAlignment="Top" Width="146" Height="74" Click="connectBtn_Click"/>
+            </Grid>
+        </TabItem>
+        <TabItem x:Name="mainTab" Header="Main" Visibility="Hidden">
+            <Grid Background="#FFE5E5E5">
+                <RichTextBox x:Name="chatRichTxtBox" HorizontalAlignment="Left" Height="396" Margin="10,51,0,0" VerticalAlignment="Top" Width="640">
+                    <RichTextBox.Resources>
+                        <Style TargetType="{x:Type Paragraph}">
+                            <Setter Property="Margin" Value="0"/>
+                        </Style>
+                    </RichTextBox.Resources>
+                </RichTextBox>
+                <TextBox x:Name="chatMsgTxtBox" HorizontalAlignment="Left" Height="23" Margin="10,460,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="542" KeyDown="chatMsgTxctBox_onKeyDown"/>
+                <Button x:Name="sendChatMsgBtn" Content="Send" HorizontalAlignment="Left" Margin="572,460,0,0" VerticalAlignment="Top" Width="88" Height="23" Click="sendChatMsgBtn_Click"/>
+                <Label x:Name="chatRichTxtBoxLbl" Content="Chat" HorizontalAlignment="Left" Margin="10,20,0,0" VerticalAlignment="Top"/>
+                <ListBox x:Name="viewerListbox" HorizontalAlignment="Left" Height="450" Margin="703,33,0,0" VerticalAlignment="Top" Width="173"/>
+            </Grid>
+        </TabItem>
+    </TabControl>
 </Window>

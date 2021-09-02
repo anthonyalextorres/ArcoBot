@@ -15,11 +15,11 @@ namespace ArcoBot
     {
         Thread systemSleeper;
         private HttpClient httpClient;
-        public IrcClient ircClient;
+        public IrcManager ircClient;
         private string apiAddress = "https://api.twitch.tv/helix/streams/?game_id=33214&first=100";
         private List<JLiveStream> streamList;
         private ConcurrentQueue<JLiveStream> streamQueue;
-        public LurkBot(IrcClient _client)
+        public LurkBot(IrcManager _client)
         {
             ircClient = _client;
             httpClient = new HttpClient();
@@ -35,8 +35,8 @@ namespace ArcoBot
 
             httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.twitchtv.v5+json");
           //  httpClient.DefaultRequestHeaders.Add("Client-ID", Global.clientid);
-            httpClient.DefaultRequestHeaders.Authorization =
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Global.AppAccessToken);
+          //  httpClient.DefaultRequestHeaders.Authorization =
+            //    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Global.AppAccessToken);
 
 
             ircClient.Start(true);
@@ -88,6 +88,7 @@ namespace ArcoBot
             }
             catch (Exception ex)
             {
+                throw ex;
             }
         }
     }

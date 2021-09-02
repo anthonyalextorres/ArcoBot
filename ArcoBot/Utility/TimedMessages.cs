@@ -13,9 +13,9 @@ namespace ArcoBot
 
         private readonly Thread worker;
         private readonly List<string> messageList;
-        private readonly IrcClient client;
+        private readonly IrcManager client;
         private bool started;
-        public TimedMessages(IrcClient _client)
+        public TimedMessages(IrcManager _client)
         {
             client = _client;
             worker = new Thread(new ThreadStart(Run));

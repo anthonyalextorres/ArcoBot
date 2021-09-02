@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace ArcoBot
 {
-    public class IrcClient
+    public class IrcManager
     {
         private Regex regex = new Regex("^(?:[:@]([^\\s]+) )?([^\\s]+)(?: ((?:[^:\\s][^\\s]* ?)*))?(?: ?:(.*))?$");//Might need later? https://stackoverflow.com/questions/8490084/trying-to-write-an-irc-client-but-struggling-to-find-a-good-resource-regarding-c
         private string username;
@@ -34,11 +34,7 @@ namespace ArcoBot
         private readonly TimedMessages messages;
         private readonly Thread worker;
         private readonly ConcurrentQueue<string> messageList;
-        public string Username { get { return username; } set { value = username; } }
-        public string Password { get { return password; } set { value = password; } }
-        public string Channel { get { return channel; } set { value = channel; } }
-        public string Address { get { return address; } set { value = address; } }
-        public int Port { get { return port; } set { value = port; } }
+        public bool Connected { get { if (client != null) return client.Connected; else return false; } }
 
         /// <summary>
         /// Constructor for Main Channel Bot
@@ -48,7 +44,7 @@ namespace ArcoBot
         /// <param name="_channel"></param>
         /// <param name="_address"></param>
         /// <param name="_port"></param>
-        public IrcClient(string _username, string _password, string _channel, string _address, int _port)
+        public IrcManager(string _username, string _password, string _channel, string _address, int _port)
         {
             username = _username;
             password = _password;
@@ -65,7 +61,7 @@ namespace ArcoBot
             pinger = new PingManager(this);
 
         }
-        public IrcClient(string _username, string _password, string _address, int _port)
+        public IrcManager(string _username, string _password, string _address, int _port)
         {
             username = _username;
             password = _password;
@@ -93,7 +89,7 @@ namespace ArcoBot
             outputStream.WriteLine($"USER {username} 8 * :{username}");
             if (!lurk)
             {
-                outputStream.WriteLine($"JOIN #{Global.Channel}");
+                outputStream.WriteLine($"JOIN #{channel}");
                 messages.Start();
             }
             pinger.Start();
@@ -108,13 +104,25 @@ namespace ArcoBot
 
         public void Leave()
         {
-            outputStream.WriteLine($"PART #{Global.Channel}");
+            outputStream.WriteLine($"PART #{channel}");
         }
+
         public void SendBaseMessage(string message)
         {
             try
             {
                 outputStream.WriteLine(message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+        }
+        public async Task SendBaseMessageAsync(string message)
+        {
+            try
+            {
+                await outputStream.WriteLineAsync(message);
             }
             catch (Exception ex)
             {
@@ -127,6 +135,18 @@ namespace ArcoBot
             {
                 string sendmsg = $":{username}!{username}@{username}.tmi.twitch.tv PRIVMSG #{channel} :{message}";
                 SendBaseMessage(sendmsg);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+        }
+        public async Task SendPublicMessageAsync(string message)
+        {
+            try
+            {
+                string sendmsg = $":{username}!{username}@{username}.tmi.twitch.tv PRIVMSG #{channel} :{message}";
+                await SendBaseMessageAsync(sendmsg);
             }
             catch (Exception ex)
             {

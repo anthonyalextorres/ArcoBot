@@ -39,7 +39,7 @@ namespace ArcoBot
             int endIndex = res.LastIndexOf(@"\\");
             int indexof = @"\nnot you? log out.".Length - 1;
             string name = res.Remove(res.Length - indexof);
-            Global.Channel = name.ToLower();
+           
         }
         private void CBrowser_AddressChanged(object sender, DependencyPropertyChangedEventArgs e)
         {

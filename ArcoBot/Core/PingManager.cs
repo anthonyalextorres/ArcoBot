@@ -10,10 +10,10 @@ namespace ArcoBot
     public class PingManager
     {
         private readonly Thread worker;
-        private readonly IrcClient client;
+        private readonly IrcManager client;
         private bool started;
 
-        public PingManager(IrcClient _client)
+        public PingManager(IrcManager _client)
         {
             worker = new Thread(new ThreadStart(Run));
             client = _client;
